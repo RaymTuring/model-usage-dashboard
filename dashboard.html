@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Model Usage Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-content {
+            padding: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+        }
+
+        .stat-card h3 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .agents-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .agents-table thead {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .agents-table th,
+        .agents-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .agents-table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        .agents-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .refresh-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .refresh-button:hover {
+            transform: scale(1.05);
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 20px;
+        }
+
+        .model-tiers {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .model-tiers h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .tier-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+
+        .tier-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 OpenClaw Model Usage Dashboard</h1>
+            <p>Real-time monitoring of AI agent model usage and performance</p>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Agents</h3>
+                    <div class="value" id="total-agents">3</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Input Tokens</h3>
+                    <div class="value" id="total-input">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Output Tokens</h3>
+                    <div class="value" id="total-output">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Estimated Cost</h3>
+                    <div class="value" id="total-cost">$0.00</div>
+                </div>
+            </div>
+
+            <div class="model-tiers">
+                <h3>Model Tier Configuration</h3>
+                <div class="tier-list">
+                    <div class="tier-item">1. Standard: gemini-3-flash-preview</div>
+                    <div class="tier-item">2. Budget: gemini-flash-1.5</div>
+                    <div class="tier-item">3. Premium: claude-3.5-haiku</div>
+                    <div class="tier-item">4. Max: claude-sonnet-4</div>
+                    <div class="tier-item">5. Special: kimi-k2.5:cloud</div>
+                    <div class="tier-item">6. Extra: glm-5:cloud</div>
+                </div>
+            </div>
+
+            <table class="agents-table">
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>Current Model</th>
+                        <th>Last Updated</th>
+                        <th>Input Tokens</th>
+                        <th>Output Tokens</th>
+                        <th>Cost</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="agents-tbody">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <div class="last-updated">
+                Last updated: <span id="last-update-time">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-button" onclick="refreshData()">
+        🔄 Refresh Data
+    </button>
+
+    <script>
+        let dashboardData = {
+            agents: [
+                {
+                    name: '@raymondturingbot',
+                    model: 'Loading...',
+                    timestamp: 'Loading...',
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    cost: 0.00,
+                    status: 'Loading'
+                },
+                {
+                    name: '@claudexpiritbot',
+                    model: 'Loading...',
+                    timestamp: 'Loading...',
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    cost: 0.00,
+                    status: 'Loading'
+                },
+                {
+                    name: '@xpiritSOCbot',
+                    model: 'Loading...',
+                    timestamp: 'Loading...',
+                    inputTokens: 0,
+                    outputTokens: 0,
+                    cost: 0.00,
+                    status: 'Loading'
+                }
+            ]
+        };
+
+        function loadDashboardData() {
+            // In a real implementation, this would fetch from the API
+            // For now, we'll simulate the data loading
+            fetch('/api/model-usage')
+                .then(response => response.json())
+                .then(data => {
+                    dashboardData = data;
+                    updateDashboard();
+                })
+                .catch(error => {
+                    console.log('Using simulated data');
+                    // Use simulated data for demonstration
+                    updateDashboard();
+                });
+        }
+
+        function updateDashboard() {
+            const tbody = document.getElementById('agents-tbody');
+            tbody.innerHTML = '';
+
+            let totalInput = 0;
+            let totalOutput = 0;
+            let totalCost = 0;
+
+            dashboardData.agents.forEach(agent => {
+                const row = document.createElement('tr');
+                
+                totalInput += parseInt(agent.inputTokens) || 0;
+                totalOutput += parseInt(agent.outputTokens) || 0;
+                totalCost += parseFloat(agent.cost) || 0;
+
+                row.innerHTML = `
+                    <td><strong>${agent.name}</strong></td>
+                    <td>${agent.model}</td>
+                    <td>${agent.timestamp}</td>
+                    <td>${agent.inputTokens.toLocaleString()}</td>
+                    <td>${agent.outputTokens.toLocaleString()}</td>
+                    <td>$${agent.cost.toFixed(4)}</td>
+                    <td><span class="status-badge status-${agent.status.toLowerCase()}">${agent.status}</span></td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+
+            // Update summary stats
+            document.getElementById('total-input').textContent = totalInput.toLocaleString();
+            document.getElementById('total-output').textContent = totalOutput.toLocaleString();
+            document.getElementById('total-cost').textContent = `$${totalCost.toFixed(4)}`;
+            document.getElementById('last-update-time').textContent = new Date().toLocaleString();
+        }
+
+        function refreshData() {
+            loadDashboardData();
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboardData, 30000);
+
+        // Initial load
+        loadDashboardData();
+    </script>
+</body>
+</html>
