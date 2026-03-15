@@ -157,6 +157,65 @@
             margin-top: 20px;
         }
 
+        .remote-control-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px solid #e9ecef;
+        }
+
+        .remote-control-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .rc-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .rc-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+        }
+
+        .rc-indicator.active {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .rc-sessions {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .rc-session-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #28a745;
+        }
+
+        .rc-session-item.disconnected {
+            border-left-color: #dc3545;
+            opacity: 0.6;
+        }
+
         .model-tiers {
             background: #f8f9fa;
             border-radius: 10px;
@@ -208,6 +267,15 @@
                     <h3>Total Estimated Cost</h3>
                     <div class="value" id="total-cost">$0.00</div>
                 </div>
+            </div>
+
+            <div class="remote-control-panel">
+                <h3>🎮 Remote Control</h3>
+                <div class="rc-status">
+                    <div class="rc-indicator" id="rc-indicator"></div>
+                    <span id="rc-status-text">No active sessions</span>
+                </div>
+                <div class="rc-sessions" id="rc-sessions"></div>
             </div>
 
             <div class="model-tiers">
@@ -337,11 +405,82 @@
             loadDashboardData();
         }
 
+        // Remote control polling
+        function pollRemoteControl() {
+            fetch('/api/remote-control')
+                .then(r => r.json())
+                .then(data => {
+                    const indicator = document.getElementById('rc-indicator');
+                    const statusText = document.getElementById('rc-status-text');
+                    const sessionsDiv = document.getElementById('rc-sessions');
+
+                    if (data.active_sessions > 0) {
+                        indicator.classList.add('active');
+                        statusText.textContent = `${data.active_sessions} active session(s)`;
+                    } else {
+                        indicator.classList.remove('active');
+                        statusText.textContent = 'No active sessions';
+                    }
+
+                    sessionsDiv.innerHTML = data.sessions.map(s => `
+                        <div class="rc-session-item ${s.status === 'disconnected' ? 'disconnected' : ''}">
+                            <span>${s.client_name} (${s.id})</span>
+                            <span>${s.status}</span>
+                        </div>
+                    `).join('');
+                })
+                .catch(() => {});
+        }
+
+        function pollCommands() {
+            fetch('/api/remote-control/commands')
+                .then(r => r.json())
+                .then(data => {
+                    data.commands.forEach(cmd => {
+                        switch (cmd.command) {
+                            case 'refresh':
+                                loadDashboardData();
+                                break;
+                            case 'set-refresh-interval':
+                                if (cmd.params.interval) {
+                                    clearInterval(autoRefreshInterval);
+                                    autoRefreshInterval = setInterval(loadDashboardData, cmd.params.interval * 1000);
+                                }
+                                break;
+                            case 'highlight-agent':
+                                if (cmd.params.agent) {
+                                    document.querySelectorAll('.agents-table tbody tr').forEach(row => {
+                                        if (row.textContent.includes(cmd.params.agent)) {
+                                            row.style.background = '#fff3cd';
+                                            setTimeout(() => row.style.background = '', 5000);
+                                        }
+                                    });
+                                }
+                                break;
+                            case 'clear-highlight':
+                                document.querySelectorAll('.agents-table tbody tr').forEach(row => {
+                                    row.style.background = '';
+                                });
+                                break;
+                            case 'scroll-to-top':
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                break;
+                        }
+                    });
+                })
+                .catch(() => {});
+        }
+
         // Auto-refresh every 30 seconds
-        setInterval(loadDashboardData, 30000);
+        let autoRefreshInterval = setInterval(loadDashboardData, 30000);
+
+        // Poll for remote control status and commands
+        setInterval(pollRemoteControl, 5000);
+        setInterval(pollCommands, 2000);
 
         // Initial load
         loadDashboardData();
+        pollRemoteControl();
     </script>
 </body>
 </html>
